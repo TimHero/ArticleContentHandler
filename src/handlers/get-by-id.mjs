@@ -25,7 +25,7 @@ export const getByIdHandler = async (event) => {
   // Get the item from the table
   // https://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/DynamoDB/DocumentClient.html#get-property
   var params = {
-    TableName : tableName,
+    TableName : "ArticleContentHandler-ContentArticles-MH8XMC50JHLW",
     Key: { id: id },
   };
 
@@ -38,6 +38,11 @@ export const getByIdHandler = async (event) => {
  
   const response = {
     statusCode: 200,
+    headers: {
+      "Access-Control-Allow-Origin": "*", // Replace * with your allowed origin or list of allowed origins
+      "Access-Control-Allow-Headers": "Content-Type", // Add other allowed headers as needed
+      "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE", // Add other allowed HTTP methods as needed
+    },
     body: JSON.stringify(item)
   };
  

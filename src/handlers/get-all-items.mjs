@@ -23,7 +23,7 @@ export const getAllItemsHandler = async (event) => {
     // https://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/DynamoDB/DocumentClient.html#scan-property
     // https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_Scan.html
     var params = {
-        TableName : tableName
+        TableName : "ArticleContentHandler-ContentArticles-MH8XMC50JHLW"
     };
 
     try {
@@ -35,6 +35,11 @@ export const getAllItemsHandler = async (event) => {
 
     const response = {
         statusCode: 200,
+        headers: {
+            "Access-Control-Allow-Origin": "*", // Replace * with your allowed origin or list of allowed origins
+            "Access-Control-Allow-Headers": "Content-Type", // Add other allowed headers as needed
+            "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE", // Add other allowed HTTP methods as needed
+          },
         body: JSON.stringify(items)
     };
 
