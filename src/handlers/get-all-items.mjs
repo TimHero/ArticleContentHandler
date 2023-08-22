@@ -18,17 +18,17 @@ export const getAllItemsHandler = async (event) => {
     }
     // All log statements are written to CloudWatch
     console.info('received:', event);
-
-    // get all items from the table (only first 1MB data, you can use `LastEvaluatedKey` to get the rest of data)
-    // https://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/DynamoDB/DocumentClient.html#scan-property
-    // https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_Scan.html
+    
     var params = {
         TableName : "ArticleContentHandler-ContentArticles-MH8XMC50JHLW"
     };
-
+    let items = [];
     try {
-        const data = await ddbDocClient.send(new ScanCommand(params));
-        var items = data.Items;
+        do {
+            const data = await ddbDocClient.send(new ScanCommand(params));
+            items = items.concat(data.Items);
+            params.ExclusiveStartKey = data.LastEvaluatedKey;
+        } while (params.ExclusiveStartKey);
     } catch (err) {
         console.log("Error", err);
     }
