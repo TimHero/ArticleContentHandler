@@ -45,20 +45,23 @@ const getAllItems = async (ExclusiveStartKey) => {
             params.ExclusiveStartKey = data.LastEvaluatedKey;
         } while (params.ExclusiveStartKey);
     } catch (err) {
-        console.log("Error", err);
-        if(err.includes("ProvisionedThroughputExceededException")){
+        console.log("Error", err.name, err.message);
+
+        if(err.name === "ProvisionedThroughputExceededException"){
+            console.log('retrying');
+            await new Promise(resolve => setTimeout(resolve, 1000));
             items.concat(await getAllItems(params.ExclusiveStartKey));
         }
         else{
-            console.err(err);
             throw err;
+
         }
     }
     return items;
     };
 
 export const syncAllItemsHandler = async (event) => {
-    getAllItems().then(async (items) => {
+    await getAllItems().then(async (items) => {
         console.log(items);
         await sendToS3(items);
         console.log('upload complete');
@@ -66,7 +69,7 @@ export const syncAllItemsHandler = async (event) => {
             statusCode: 200
         };
     }).catch(err => {
-        console.err(err);
+        console.info('error',err);
         return {
             statusCode: 500
         };
