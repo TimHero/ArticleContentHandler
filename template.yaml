@@ -62,6 +62,33 @@ Resources:
           Properties:
             Path: /{id}
             Method: GET
+
+    
+  deleteByIdFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src/handlers/delete-item.deleteItemHandler
+      Runtime: nodejs18.x
+      Architectures:
+      - x86_64
+      MemorySize: 128
+      Timeout: 100
+      Description: Http delete an item from ContentArticles table by id.
+      Policies:
+      - DynamoDBCrudPolicy:
+          TableName: !Ref ContentArticles
+      Environment:
+        Variables:
+          # Make table name accessible as environment variable from function code during execution
+          ContentArticles: !Ref ContentArticles
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            Path: /{id}
+            Method: DELETE
+
+      
   # Each Lambda function is defined by properties:
   # https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
 
@@ -89,6 +116,29 @@ Resources:
           Properties:
             Path: /
             Method: POST
+  
+  SyncAllItemsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src/handlers/sync-all-items.syncAllItemsHandler
+      Runtime: nodejs18.x
+      Architectures:
+      - x86_64
+      MemorySize: 128
+      Timeout: 100
+      Description: Sync all items from ContentArticles table to s3 bucket.
+      Policies:
+      - DynamoDBCrudPolicy:
+          TableName: !Ref ContentArticles
+      Environment:
+        Variables:
+          # Make table name accessible as environment variable from function code during execution
+          ContentArticles: !Ref ContentArticles
+      Events:
+        Schedule:
+          Type: Schedule
+          Properties:
+            Schedule: rate(10 minutes)
   # Simple syntax to create a DynamoDB table with a single attribute primary key, more in
   # https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlesssimpletable
 
@@ -130,3 +180,7 @@ Globals:
     Tracing: Active
   Api:
     TracingEnabled: true
+    Cors:
+      AllowMethods: "'*'"
+      AllowHeaders: "'*'"
+      AllowOrigin: "'*'"

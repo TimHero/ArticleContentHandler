@@ -2,54 +2,19 @@
 
 // Create a DocumentClient that represents the query to add an item
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import { DynamoDBDocumentClient, PutCommand } from '@aws-sdk/lib-dynamodb';
+import { DynamoDBDocumentClient, DeleteCommand } from '@aws-sdk/lib-dynamodb';
 import { v4 as uuidv4 } from 'uuid';
-import { GetCommand as S3GetCommand, PutCommand as S3PutCommand } from '@aws-sdk/client-s3';
 const client = new DynamoDBClient({});
 const ddbDocClient = DynamoDBDocumentClient.from(client);
-
-const Bucket = 'flattened-user-data';
-const Folder = 'ArticleData/';
-const REGION = "eu-west-1";
 
 // Get the DynamoDB table name from environment variables
 const tableName = process.env.TABLE_NAME;
 
-const s3Client = new S3Client({
-    region:REGION
-});
-const sendToS3 = async (data, userId) => {
-    console.info(Folder + userId + '.json');
-  
-    const putObjectCommand = new PutObjectCommand({
-      Bucket,
-      Key: Folder + userId + '.json',
-      Body:JSON.stringify(data),
-    });
-  
-  try {
-    const response = await s3Client.send(putObjectCommand);
-    console.info('upload complete');
-    return response;
-  } catch (err) {
-  console.error("Error uploading file:", err);
-  }
-  }
-
-const getFromS3 = async () => {
-    const getObjectCommand = new GetObjectCommand({
-    Bucket,
-    Key: Folder + 'allArticles.json',
-    });
-    const data = await s3Client.send(getObjectCommand);
-    console.info('download complete');
-    return data;
-}
 /**
  * A simple example includes a HTTP post method to add one item to a DynamoDB table.
  */
-export const putItemHandler = async (event) => {
-    if (event.httpMethod !== 'POST') {
+export const DeleteItemHandler = async (event) => {
+    if (event.httpMethod !== 'DELETE') {
         if(event.httpMethod === 'OPTIONS'){
             return {
                 statusCode: 200,
@@ -68,24 +33,17 @@ export const putItemHandler = async (event) => {
     // All log statements are written to CloudWatch
     console.info('received:', event);
 
-    // Get id and name from the body of the request
-    const body = JSON.parse(event.body);
-    if(!body.id){
-        body.id = uuidv4();
-    }
-    if(body.published && !body.firstPublished){
-        body.firstPublished = new Date().toISOString();
-    }
-    body.lastUpdated = new Date().toISOString();
+    const id = event.pathParameters.id;
+
     // Creates a new item, or replaces an old item with a new item
     // https://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/DynamoDB/DocumentClient.html#put-property
     var params = {
         TableName : "ArticleContentHandler-ContentArticles-MH8XMC50JHLW",
-        Item: body 
+        Key: { id: id },
     };
 
     try {
-        const data = await ddbDocClient.send(new PutCommand(params));
+        const data = await ddbDocClient.send(new DeleteCommand(params));
         console.log("Success - item added or updated", data);
       } catch (err) {
         console.log("Error", err.stack);
@@ -101,13 +59,13 @@ export const putItemHandler = async (event) => {
       }
 
     const response = {
-        statusCode: 200,
+        statusCode: 204,
         headers: {
             "Access-Control-Allow-Origin": "*", 
             "Access-Control-Allow-Headers": "Content-Type", 
             "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE",
         },
-        body: JSON.stringify(body)
+        body: ""
     };
 
     // All log statements are written to CloudWatch

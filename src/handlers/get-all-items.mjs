@@ -3,6 +3,20 @@
 // Create a DocumentClient that represents the query to add an item
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, ScanCommand } from '@aws-sdk/lib-dynamodb';
+import { S3Client } from '@aws-sdk/client-s3';
+
+
+const Bucket = 'flattened-user-data';
+const Folder = 'ArticleData/';
+const REGION = "eu-west-1";
+const allItemsKey = Folder + 'allItems.json';
+
+
+const s3Client = new S3Client({
+    region:REGION
+});
+
+
 const client = new DynamoDBClient({});
 const ddbDocClient = DynamoDBDocumentClient.from(client);
 
@@ -16,9 +30,8 @@ export const getAllItemsHandler = async (event) => {
     if (event.httpMethod !== 'GET') {
         throw new Error(`getAllItems only accept GET method, you tried: ${event.httpMethod}`);
     }
-    // All log statements are written to CloudWatch
     console.info('received:', event);
-    
+    const queryParams = event.queryStringParameters || {};
     var params = {
         TableName : "ArticleContentHandler-ContentArticles-MH8XMC50JHLW"
     };
@@ -32,7 +45,9 @@ export const getAllItemsHandler = async (event) => {
     } catch (err) {
         console.log("Error", err);
     }
-
+    if(!queryParams.all){
+        items = items.filter(item => item.published);
+    }
     const response = {
         statusCode: 200,
         headers: {

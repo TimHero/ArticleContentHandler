@@ -5,6 +5,7 @@
     "private": true,
     "dependencies": {
         "@aws-sdk/client-dynamodb": "^3.188.0",
+        "@aws-sdk/client-s3": "^3.421.0",
         "@aws-sdk/lib-dynamodb": "^3.188.0",
         "uuid": "^9.0.0"
     },
@@ -14,7 +15,8 @@
     },
     "scripts": {
         "test": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js",
-        "deploy": "sam build && sam deploy --profile mfa --region eu-west-1"
+        "deploy": "sam build && sam deploy --profile mfa --region eu-west-1",
+        "deploy --nobuild": "sam deploy --profile mfa --region eu-west-1"
     },
     "jest": {
         "testMatch": [
