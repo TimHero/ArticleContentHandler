@@ -16,7 +16,12 @@
     "scripts": {
         "test": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js",
         "deploy": "sam build && sam deploy --profile mfa --region eu-west-1",
-        "deploy --nobuild": "sam deploy --profile mfa --region eu-west-1"
+        "deploy --nobuild": "sam deploy --profile mfa --region eu-west-1",
+        "build": "sam build",
+        "start-api": "sam local start-api",
+        "start-lambda": "sam local start-lambda",
+        "invoke": "sam local invoke",
+        "auth": "bash ./AWSAuth.sh" 
     },
     "jest": {
         "testMatch": [
