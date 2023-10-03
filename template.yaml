@@ -138,7 +138,7 @@ Resources:
         Schedule:
           Type: Schedule
           Properties:
-            Schedule: rate(10 minutes)
+            Schedule: rate(12 hours)
   # Simple syntax to create a DynamoDB table with a single attribute primary key, more in
   # https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlesssimpletable
 

@@ -4,26 +4,35 @@
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, PutCommand } from '@aws-sdk/lib-dynamodb';
 import { v4 as uuidv4 } from 'uuid';
-import { GetCommand as S3GetCommand, PutCommand as S3PutCommand } from '@aws-sdk/client-s3';
+import { GetObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 const client = new DynamoDBClient({});
 const ddbDocClient = DynamoDBDocumentClient.from(client);
 
 const Bucket = 'flattened-user-data';
 const Folder = 'ArticleData/';
 const REGION = "eu-west-1";
+const allItemsKey = Folder + 'allItems.json';
+const publishedItemsKey = Folder + 'publishedItems.json';
 
 // Get the DynamoDB table name from environment variables
 const tableName = process.env.TABLE_NAME;
+export const streamToString = (stream) =>
+new Promise((resolve, reject) => {
+  const chunks = [];
+  stream.on("data", (chunk) => chunks.push(chunk));
+  stream.on("error", reject);
+  stream.on("end", () => resolve(Buffer.concat(chunks).toString("utf8")));
+});
+
 
 const s3Client = new S3Client({
     region:REGION
 });
-const sendToS3 = async (data, userId) => {
-    console.info(Folder + userId + '.json');
+const sendToS3 = async (data, key = allItemsKey) => {
   
     const putObjectCommand = new PutObjectCommand({
       Bucket,
-      Key: Folder + userId + '.json',
+      Key: key,
       Body:JSON.stringify(data),
     });
   
@@ -39,11 +48,10 @@ const sendToS3 = async (data, userId) => {
 const getFromS3 = async () => {
     const getObjectCommand = new GetObjectCommand({
     Bucket,
-    Key: Folder + 'allArticles.json',
+    Key: allItemsKey,
     });
     const data = await s3Client.send(getObjectCommand);
-    console.info('download complete');
-    return data;
+    return JSON.parse( await streamToString(data.Body));
 }
 /**
  * A simple example includes a HTTP post method to add one item to a DynamoDB table.
@@ -86,31 +94,38 @@ export const putItemHandler = async (event) => {
 
     try {
         const data = await ddbDocClient.send(new PutCommand(params));
-        console.log("Success - item added or updated", data);
+        const allArticles = await getFromS3();
+
+        console.info(allArticles[0], 'allArticles');
+        // get the index of the item with the matching id
+        const index = allArticles.findIndex(item => item.id === body.id);
+        if(index === -1){
+            allArticles.push(body);
+        }
+        else{
+            allArticles[index] = body;
+        }
+        await sendToS3(allArticles);
+        if(body.published){
+            const publishedArticles = allArticles.filter(item => item.published);
+            await sendToS3(publishedArticles, publishedItemsKey);
+        }
+
       } catch (err) {
         console.log("Error", err.stack);
         return {
-            headers: {
-                "Access-Control-Allow-Origin": "*",
-                "Access-Control-Allow-Headers": "Content-Type",
-                "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE",
-            },
             statusCode: 500
         }
         
       }
 
-    const response = {
+      const response = {
         statusCode: 200,
         headers: {
-            "Access-Control-Allow-Origin": "*", 
-            "Access-Control-Allow-Headers": "Content-Type", 
-            "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE",
+            'Content-Type': 'application/json', 
         },
-        body: JSON.stringify(body)
+        body: JSON.stringify({ message: 'Success' })
     };
-
-    // All log statements are written to CloudWatch
-    console.info(`response from: ${event.path} statusCode: ${response.statusCode} body: ${response.body}`);
+    
     return response;
 };

@@ -62,7 +62,6 @@ const getAllItems = async (ExclusiveStartKey) => {
 
 export const syncAllItemsHandler = async (event) => {
     await getAllItems().then(async (items) => {
-        console.log(items);
         await sendToS3(items);
         console.log('upload complete');
         return {
