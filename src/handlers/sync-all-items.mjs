@@ -1,6 +1,7 @@
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
+
 import { DynamoDBDocumentClient, ScanCommand } from '@aws-sdk/lib-dynamodb';
-import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import { PutObjectCommand, S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
 
 const Bucket = 'flattened-user-data';
 const Folder = 'ArticleData/';
@@ -28,6 +29,15 @@ const sendToS3 = async (data) => {
   }
   }
 
+const getFromS3 = async () => {
+    const getObjectCommand = new GetObjectCommand({
+    Bucket,
+    Key: allItemsKey,
+    });
+    const data = await s3Client.send(getObjectCommand);
+    return JSON.parse( await streamToString(data.Body));
+}
+
 
 const client = new DynamoDBClient({});
 const ddbDocClient = DynamoDBDocumentClient.from(client);
@@ -42,6 +52,7 @@ const getAllItems = async (ExclusiveStartKey) => {
         do {
             const data = await ddbDocClient.send(new ScanCommand(params));
             items = items.concat(data.Items);
+            console.log(data.LastEvaluatedKey, Object.keys(data), items.length);
             params.ExclusiveStartKey = data.LastEvaluatedKey;
         } while (params.ExclusiveStartKey);
     } catch (err) {
@@ -62,7 +73,10 @@ const getAllItems = async (ExclusiveStartKey) => {
 
 export const syncAllItemsHandler = async (event) => {
     await getAllItems().then(async (items) => {
-        await sendToS3(items);
+        const currentItems = await getFromS3();
+        if(items.length > currentItems.length){
+          await sendToS3(items);
+        }
         console.log('upload complete');
         return {
             statusCode: 200
