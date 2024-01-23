@@ -11,6 +11,13 @@ const REGION = "eu-west-1";
 const allItemsKey = Folder + 'allItems.json';
 const publishedItemsKey = Folder + 'publishedItems.json';
 
+function isStringInArray(inputArray, searchString) {
+    // Create a regular expression pattern for each element in the array
+    const regexPatterns = inputArray.map(pattern => new RegExp(`^${pattern.replace(/%/g, '.*')}$`));
+  
+    // Check if the searchString matches any pattern in the array
+    return regexPatterns.some(pattern => pattern.test(searchString));
+  }
 
 export const streamToString = (stream) =>
 new Promise((resolve, reject) => {
@@ -47,12 +54,22 @@ export const getAllItemsHandler = async (event) => {
     const queryParams = event.queryStringParameters || {};
     var response = {};
     try{
-        var items = '';
+        var items = [];
        if(queryParams.all){
-            items = await getFromS3();
+            items = JSON.parse(await getFromS3());
         }
         else{
-            items = await getFromS3(publishedItemsKey);
+            items = JSON.parse(await getFromS3(publishedItemsKey));
+        }
+
+        if(queryParams.companyId){
+            if(queryParams.region){
+                items = items.filter(item => !item.companies || !item.companies.length || (item.companies.includes(queryParams.companyId) && (!item.companyRegions  || !item.companyRegions.length || isStringInArray(item.companyRegions, queryParams.region))));
+            }
+            else{
+                items = items.filter(item => !item.companies || !item.companies.length || item.companies.includes(queryParams.companyId));
+            }
+           
         }
         response = {
             statusCode: 200,
@@ -61,8 +78,11 @@ export const getAllItemsHandler = async (event) => {
                 "Access-Control-Allow-Headers": "Content-Type", // Add other allowed headers as needed
                 "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE", // Add other allowed HTTP methods as needed
               },
-            body: items
+            body: JSON.stringify(items)
         };
+
+       
+    
     }
     catch(err){
         console.log(err);
