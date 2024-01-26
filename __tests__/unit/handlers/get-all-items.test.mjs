@@ -118,4 +118,77 @@ describe('Test getAllItemsHandler', () => {
         // Compare the result with the expected result 
         expect(result).toEqual(expectedResult);
     });
+
+    //test that confirms that the functions puts the items in order of first published date
+    it('should return items in order of first published date', async () => { 
+        const items = [{ id: 'id1', firstPublished: '2021-01-01' }, { id: 'id2', firstPublished: '2021-01-02' }, { id: 'id3', firstPublished: '2021-01-03' }];
+
+        const readableStream = new Readable();
+        readableStream.push(JSON.stringify(items));
+        readableStream.push(null); // End the stream
+        s3Mock.on(GetObjectCommand).resolves({
+            Body: readableStream, // Mock the response as a readable stream
+        });
+
+        const event = { 
+            httpMethod: 'GET',
+            queryStringParameters: {
+                companyId: 'yourCompanyId',
+                region: 'yourRegion',
+            },
+        };
+
+        // Invoke getAllItemsHandler() 
+        const result = await getAllItemsHandler(event);
+
+        const expectedResult = { 
+            statusCode: 200, 
+            body: JSON.stringify([{ id: 'id3', firstPublished: '2021-01-03' }, { id: 'id2', firstPublished: '2021-01-02' }, { id: 'id1', firstPublished: '2021-01-01' }]),
+            headers: {
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Headers": "Content-Type",
+                "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE",
+            }
+        };
+
+        // Compare the result with the expected result 
+        expect(result).toEqual(expectedResult);
+    });
+
+    //test that confirms companyId 50 is sorted by if tags includes 'older adults' and then by first published date
+    it('should return items in order of older adults tags and then by first published date', async () => {
+        const items = [{ id: 'id1', firstPublished: '2021-01-01', tags: ['older adults'] }, { id: 'id2', firstPublished: '2021-01-02' }, { id: 'id3', firstPublished: '2021-01-03', tags: ['older adults'] }];
+
+        const readableStream = new Readable();
+        readableStream.push(JSON.stringify(items));
+        readableStream.push(null); // End the stream
+        s3Mock.on(GetObjectCommand).resolves({
+            Body: readableStream, // Mock the response as a readable stream
+        });
+
+        const event = { 
+            httpMethod: 'GET',
+            queryStringParameters: {
+                companyId: '50',
+                region: 'yourRegion',
+            },
+        };
+
+        // Invoke getAllItemsHandler() 
+        const result = await getAllItemsHandler(event);
+
+        const expectedResult = { 
+            statusCode: 200, 
+            body: JSON.stringify([{ id: 'id3', firstPublished: '2021-01-03', tags: ['older adults'] }, { id: 'id1', firstPublished: '2021-01-01', tags: ['older adults'] }, { id: 'id2', firstPublished: '2021-01-02' }]),
+            headers: {
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Headers": "Content-Type",
+                "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE",
+            }
+        };
+
+        // Compare the result with the expected result 
+        expect(result).toEqual(expectedResult);
+    });
+        
 });

@@ -61,13 +61,30 @@ export const getAllItemsHandler = async (event) => {
         else{
             items = JSON.parse(await getFromS3(publishedItemsKey));
         }
-
+        //sort by published date with most recent first
+        items = items.sort((a,b) => new Date(b.firstPublished) - new Date(a.firstPublished));
         if(queryParams.companyId){
             if(queryParams.region){
                 items = items.filter(item => !item.companies || !item.companies.length || (item.companies.includes(queryParams.companyId) && (!item.companyRegions  || !item.companyRegions.length || isStringInArray(item.companyRegions, queryParams.region))));
             }
             else{
                 items = items.filter(item => !item.companies || !item.companies.length || item.companies.includes(queryParams.companyId));
+            }
+
+            if(queryParams.companyId === '50'){
+                //sort by if tags includes 'older adults'
+                items = items.sort((a,b) => {
+                    if(b.tags && b.tags.includes('older adults')){
+                        return 1;
+                    }
+                    else if(a.tags && a.tags.includes('older adults')){
+                        return -1;
+                    }
+                   
+                    else{
+                        return 0;
+                    }
+                });
             }
            
         }
