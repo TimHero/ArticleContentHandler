@@ -73,7 +73,6 @@ export const putItemHandler = async (event) => {
         }
         
     }
-    // All log statements are written to CloudWatch
     console.info('received:', event);
 
     // Get id and name from the body of the request
@@ -96,7 +95,6 @@ export const putItemHandler = async (event) => {
         const data = await ddbDocClient.send(new PutCommand(params));
         const allArticles = await getFromS3();
 
-        console.info(allArticles[0], 'allArticles');
         // get the index of the item with the matching id
         const index = allArticles.findIndex(item => item.id === body.id);
         if(index === -1){
